@@ -1,1 +1,446 @@
+#include <iostream>         //provides standard input/output
+#include <fstream>          //(for both input and output file streams)  open, read, write, and manipulate files
+#include <vector>           // dynamic array that can change its size at runtime
+#include <sstream>          //String streams allow you to read from or write to strings using stream operators (<< and >>).
 
+using namespace std;
+
+// Point #: 01 [Class]
+
+class Shopping 
+{
+protected:
+    int pcode;
+    char pname[100];
+    float price, disc;
+
+public:
+    virtual void menu() = 0;
+    void list();
+};
+
+void Shopping::list() 
+{
+    ifstream data("database.txt");
+
+    if (!data) 
+    {
+        cout << "\n\n\tDatabase file not found!";
+        return;
+    }
+
+    cout << "\n\nPRODUCTS LIST\n\n";
+    cout << "Product Code\tProduct Name\tProduct Price\tDiscount (%)\n";
+
+    string line;
+    while (getline(data, line)) 
+    {
+        stringstream ss(line);
+        ss >> pcode >> pname >> price >> disc;
+        cout << pcode << "\t\t" << pname << "\t\t" << price << "\t\t" << disc << endl;
+    }
+
+    data.close();
+}
+
+// Point #: 2 [Inheritence]
+
+class Admin : public Shopping 
+{
+public:
+    void menu();
+    void add();
+    void rem();
+    void modify();
+    void viewHistory();
+};
+
+void Admin::menu() 
+{
+    int choice;
+    do {
+        cout << "\n\n\tADMIN MENU";
+        cout << "\n\n\t1. Add product";
+        cout << "\n\n\t2. Remove product";
+        cout << "\n\n\t3. Modify product";
+        cout << "\n\n\t4. List all products";
+        cout << "\n\n\t5. Remove all data";
+        cout << "\n\n\t6. View purchasing history";
+        cout << "\n\n\t0. Back to main menu";
+        cout << "\n\n\tPlease enter your choice (0-6): ";
+        cin >> choice;
+
+        switch (choice) 
+        {
+            case 1:
+                add();
+                break;
+            case 2:
+                rem();
+                break;
+            case 3:
+                modify();
+                break;
+            case 4:
+                list();
+                break;
+            case 5:
+                remove("database.txt");
+                cout << "\n\n\tAll data removed!";
+                break;
+            case 6:
+                viewHistory();
+                break;
+            case 0:
+                cout << "\n\n\tReturning to the main menu.";
+                break;
+            default:
+                cout << "\n\n\tInvalid choice! Please try again.";
+        }
+    } 
+    while (choice != 0);
+}
+
+void Admin::add() 
+{
+    ifstream data("database.txt");
+    int productCode;
+
+   if (!data) 
+   {
+       cout << "\n\n\tDatabase file not found!";
+       return;
+   }
+
+    cout << "\n\nEnter the product code: ";
+    cin >> productCode;
+
+    // Check if the product code already exists
+    while (data >> pcode >> pname >> price >> disc) 
+    {
+        if (pcode == productCode) 
+        {
+            cout << "\n\nProduct code already exists! Please enter a unique code.";
+            data.close();
+            return;
+        }
+    }
+
+    fstream dataFile;
+    dataFile.open("database.txt", ios::out | ios::app);
+
+    cout << "\nEnter the product name: ";
+    cin.ignore();
+
+    char* pointer = new char[100];
+    cin.getline(pointer, 100);
+
+    int i = 0;
+    while (pointer[i] != '\0' && i < 100) 
+    {
+        pname[i] = pointer[i];
+        i++;
+    }
+
+    pname[i] = '\0';
+
+    cout << "\nEnter the product price: ";
+    cin >> price;
+    cout << "\nEnter the product discount percentage: ";
+    cin >> disc;
+
+    dataFile << productCode << "\t\t" << pname << "\t\t" << price << "\t\t" << disc << endl;
+
+    delete[] pointer;
+
+    dataFile.close();
+
+    cout << "\n\nProduct successfully added!";
+}
+
+
+void Admin::rem() 
+{
+    fstream data, data1;
+    int flag = 0;
+
+    data.open("database.txt", ios::in);
+    data1.open("temp.txt", ios::out);
+
+    int productCodeToRemove;
+    cout << "\n\nEnter the product code of the product to be removed: ";
+    cin >> productCodeToRemove;
+
+    while (!data.eof()) 
+    {
+        data >> pcode >> pname >> price >> disc;
+        if (data.eof())
+            break;
+        if (pcode != productCodeToRemove)
+            data1 << pcode << "\t\t" << pname << "\t\t" << price << "\t\t" << disc << endl;
+        else
+            flag = 1;
+    }
+
+    data.close();
+    data1.close();
+
+    if (flag == 1) 
+    {
+        cout << "\n\nProduct successfully removed!";
+        remove("database.txt");
+        rename("temp.txt", "database.txt");
+    } 
+    else 
+    {
+        cout << "\n\nProduct not found!";
+        remove("temp.txt");
+    }
+}
+
+void Admin::modify() 
+{
+    fstream data, data1;
+    int flag = 0;
+
+    data.open("database.txt", ios::in);
+    data1.open("temp.txt", ios::out);
+
+    int productCodeToModify;
+    cout << "\n\nEnter the product code of the product to be modified: ";
+    cin >> productCodeToModify;
+
+    while (!data.eof()) 
+    {
+        data >> pcode >> pname >> price >> disc;
+        if (data.eof())
+            break;
+        if (pcode != productCodeToModify)
+            data1 << pcode << "\t\t" << pname << "\t\t" << price << "\t\t" << disc << endl;
+        else {
+            cout << "\n\nEnter the new product code: ";
+            cin >> pcode;
+
+            cout << "\nEnter the new product name: ";
+            cin.ignore();
+            cin.getline(pname, 100);
+
+            cout << "\nEnter the new product price: ";
+            cin >> price;
+
+            cout << "\nEnter the new product discount percentage: ";
+            cin >> disc;
+
+            data1 << pcode << "\t\t" << pname << "\t\t" << price << "\t\t" << disc << endl;
+            flag = 1;
+        }
+    }
+
+    data.close();
+    data1.close();
+
+    if (flag == 1) 
+    {
+        cout << "\n\nProduct successfully modified!";
+        remove("database.txt");
+        rename("temp.txt", "database.txt");
+    } 
+    else
+    {
+        cout << "\n\nProduct not found!";
+        remove("temp.txt");
+    }
+}
+
+void Admin::viewHistory() 
+{
+    ifstream historyFile("purchase_history.txt");
+
+    if (!historyFile) 
+    {
+        cout << "\n\n\tPurchase history file not found!";
+        return;
+    }
+
+    cout << "\n\nPURCHASE HISTORY\n\n";
+    string line;
+    while (getline(historyFile, line)) 
+    {
+        cout << line << endl;
+    }
+
+    historyFile.close();
+}
+
+class User : public Shopping 
+{
+public:
+    void menu();
+    void purchase();
+};
+
+void User::menu() 
+{
+    int choice;
+    do {
+        cout << "\n\n\tUSER MENU";
+        cout << "\n\n\t1. List all products";
+        cout << "\n\n\t2. Purchase product";
+        cout << "\n\n\t0. Back to main menu";
+        cout << "\n\n\tPlease enter your choice (0-2): ";
+        cin >> choice;
+
+        switch (choice) 
+        {
+            case 1:
+                list();
+                break;
+            case 2:
+                purchase();
+                break;
+            case 0:
+                cout << "\n\n\tReturning to the main menu.";
+                break;
+            default:
+                cout << "\n\n\tInvalid choice! Please try again.";
+        }
+    } 
+    while (choice != 0);
+}
+
+void User::purchase() 
+{
+    fstream data;
+    int productCodeToBuy;
+    int flag = 0;
+
+    data.open("database.txt", ios::in);
+
+    vector<int> productCodes;     // Store product codes in the cart
+    vector<string> productNames;  // Store product names in the cart
+    vector<int> quantities;       // Store quantities of corresponding products
+    vector<float> prices;         // Store prices of corresponding products
+    vector<float> discounts;      // Store discounts of corresponding products
+    vector<float> actualPrices;   // Store actual prices of corresponding products
+    vector<float> totalPrices;    // Store total prices of corresponding products
+
+    float grandTotal = 0.0;       // Accumulated total
+
+    char choice = 'Y';
+    while (choice == 'Y' || choice == 'y') 
+    {
+        cout << "\n\nEnter the product code of the product to buy: ";
+        cin >> productCodeToBuy;
+
+        int quantity;
+        cout << "Enter the quantity: ";
+        cin >> quantity;
+
+        float productPrice = 0.0;
+        float discountedPrice = 0.0;
+        bool productFound = false;
+
+        while (!data.eof()) {
+            data >> pcode >> pname >> price >> disc;
+            if (data.eof())
+                break;
+            if (pcode == productCodeToBuy) 
+            {
+        
+                flag = 1;
+
+                productFound = true;
+
+                productPrice = price * quantity;
+                float totalPrice = productPrice;
+                discountedPrice = productPrice - (productPrice * (disc / 100));
+                grandTotal += discountedPrice;  // Accumulate the discounted price
+				cout << "\n\t=======================================" << endl;
+                cout << "\n\n\t\tProduct found!" << endl;
+                cout << "\n\t\tProduct Code: " << pcode;
+                cout << "\n\t\tProduct Name: " << pname;
+                cout << "\n\t\tProduct Price: " << price;
+                cout << "\n\t\tProduct Discount: " << disc;
+                cout << "\n\t\tQuantity: " << quantity;
+                cout << "\n\t\tActual Price: " << productPrice;
+                cout << "\n\n\t\tTotal Price (After Discount): " << discountedPrice;
+                cout << "\n\n\t=======================================" << endl;
+
+                // Add product details to the cart
+                productCodes.push_back(pcode);
+                productNames.push_back(pname);
+                quantities.push_back(quantity);
+                prices.push_back(price);
+                discounts.push_back(disc);
+                actualPrices.push_back(productPrice);
+                totalPrices.push_back(discountedPrice);
+                ofstream historyFile;
+                
+		        historyFile.open("purchase_history.txt", ios::out | ios::app);
+		        historyFile << "Product Code: " << pcode << "\tProduct Name: " << pname << "\tQuantity: " << quantity
+		                    << "\tGrand Total : " << grandTotal << endl;
+		        historyFile.close();
+            }
+        }
+
+        data.clear();   // Reset the file stream flags
+        data.seekg(0);  // Reset the file stream pointer to the beginning
+
+        if (!productFound) 
+        {
+            cout << "\n\n\tProduct not found!";
+        }
+
+        cout << "\n\nDo you want to buy more products? (Y/N): ";
+        cin >> choice;
+    }
+
+    // Display the receipt
+    cout << "\n\n----------------------- RECEIPT -----------------------\n";
+    cout << "Product Code\tProduct Name\tQuantity\tPrice\t\tActual price\tDiscount\tTotal Price\n";
+    for (int i = 0; i < productCodes.size(); i++) {
+        cout << productCodes[i] << "\t\t" << productNames[i] << "\t\t" << quantities[i] << "\t\t" << prices[i] << "\t\t" << actualPrices[i]  << "\t\t" << discounts[i] << "\t\t" << totalPrices[i] << endl;
+    }
+    cout << "\n-------------------------------------------------------\n";
+    cout << "Grand Total (After Discount): " << grandTotal;
+    data.close();
+}
+
+int main() 
+{
+    int choice;
+
+    do 
+    {
+        cout << "\n\n\tMAIN MENU";
+        cout << "\n\n\t1. Admin";
+        cout << "\n\n\t2. User";
+        cout << "\n\n\t0. Exit";
+        cout << "\n\n\tPlease enter your choice (0-2): ";
+        cin >> choice;
+
+        switch (choice) 
+        {
+            case 1: {
+                Admin admin;
+                admin.menu();
+                break;
+            }
+            case 2: {
+                User user;
+                user.menu();
+                break;
+            }
+            case 0:
+                cout << "\n\n\tThank you for using the application. Goodbye!";
+                break;
+            default:
+                cout << "\n\n\tInvalid choice! Please try again.";
+        }
+    } 
+    while (choice != 0);
+
+
+
+    return 0;
+}
